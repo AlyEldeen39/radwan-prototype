@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,7 +10,7 @@ import AuthRequiredModal from "../auth/AuthRequiredModal";
 import { Course } from "@/types";
 import { CourseWithDetails } from "@/types/course";
 import { useAuth } from "@/hooks/useAuth";
-import { FaBook, FaCalendar, FaUsers, FaEye, FaUserPlus } from "react-icons/fa";
+import { FaBook, FaCalendar, FaEye, FaUserPlus, FaUsers } from "react-icons/fa";
 
 interface CourseCardProps {
   course: Course | CourseWithDetails;

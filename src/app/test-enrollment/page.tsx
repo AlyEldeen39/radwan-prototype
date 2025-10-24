@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { CourseEnrollmentManager } from "@/components/enrollment";
 import { CourseWithDetails } from "@/types/course";

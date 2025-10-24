@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { CourseWithDetails } from "@/types/course";
 import { EnrollModal } from "@/components/modals";
