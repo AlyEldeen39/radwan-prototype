@@ -1,20 +1,21 @@
 "use client";
 import {
-  useState,
-  useEffect,
-  useContext,
   createContext,
   ReactNode,
+  useContext,
+  useEffect,
+  useState,
 } from "react";
 import { User, UserRole } from "@/types";
 import {
-  isAuthenticated,
   getAccessToken,
-  parseJwt,
+  isAuthenticated,
   logout as authLogout,
+  parseJwt,
   saveAccessToken,
 } from "@/utils/authUtils";
 import api from "@/utils/api";
+import { acessTokens } from "@/dev-data/acessTokens";
 
 interface AuthContextType {
   user: User | null;
@@ -52,12 +53,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const token = getAccessToken();
+
       if (token) {
         const decoded = parseJwt(token);
         if (decoded) {
           // Create user object from token
           const userData: User = {
-            id: decoded.sub as string,
+            id: decoded.id as string,
             email: decoded.email as string,
             first_name: (decoded.first_name as string) || "مستخدم",
             last_name: (decoded.last_name as string) || "",
@@ -81,10 +83,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const response = await api.post("/api/auth/login", {
-        email,
-        password,
-      });
+      // const response = await api.post("/api/auth/login", {
+      //   email,
+      //   password,
+      // });
+
+      const response: { data: { accessToken: null | string } } =
+        await new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              data: {
+                accessToken: acessTokens[email.split("@")[0]] || null,
+              },
+            });
+          }, 2000);
+        });
 
       if (response.data?.accessToken) {
         // Save token manually since API interceptor might not catch login response

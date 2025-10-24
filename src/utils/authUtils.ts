@@ -9,7 +9,7 @@ export const getAccessToken = (): string | null => {
 
   const cookies = document.cookie.split(";");
   const tokenCookie = cookies.find((cookie) =>
-    cookie.trim().startsWith("accessToken=")
+    cookie.trim().startsWith("accessToken="),
   );
 
   if (tokenCookie) {
@@ -55,6 +55,7 @@ export const removeAccessToken = (): void => {
  */
 export const isAuthenticated = (): boolean => {
   const token = getAccessToken();
+  console.log(!!token);
   return !!token && !isTokenExpired(token);
 };
 
@@ -72,7 +73,7 @@ export const parseJwt = (token: string): Record<string, unknown> | null => {
         .map((c) => {
           return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
         })
-        .join("")
+        .join(""),
     );
     return JSON.parse(jsonPayload);
   } catch (e) {
@@ -86,11 +87,12 @@ export const parseJwt = (token: string): Record<string, unknown> | null => {
 export const isTokenExpired = (token: string): boolean => {
   try {
     const decoded = parseJwt(token);
-    if (!decoded || !decoded.exp || typeof decoded.exp !== "number") {
+
+    if (!decoded || !decoded.exp || typeof +decoded.exp !== "number") {
       return true;
     }
     // Check if expiration time is past current time
-    return decoded.exp * 1000 < Date.now();
+    return +decoded.exp * 1000 < Date.now();
   } catch {
     return true;
   }
@@ -112,7 +114,7 @@ export const refreshToken = async (): Promise<string | null> => {
   try {
     const response = await api.post<{ accessToken: string }>(
       "/auth/refresh-token",
-      {}
+      {},
     );
     const newToken = response.data.accessToken;
     saveAccessToken(newToken);
