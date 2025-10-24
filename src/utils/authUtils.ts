@@ -26,12 +26,13 @@ export const saveAccessToken = (token: string): void => {
   if (typeof window === "undefined") return;
 
   // Set cookie with security options
+  const isProduction = process.env.NODE_ENV === "production";
   const isSecure = window.location.protocol === "https:";
   const cookieOptions = [
     `accessToken=${token}`,
     "Path=/",
-    "SameSite=Strict",
-    ...(isSecure ? ["Secure"] : []),
+    "SameSite=Lax", // Changed from Strict to Lax for better compatibility
+    ...(isProduction && isSecure ? ["Secure"] : []),
     // Set expiration to 7 days
     `Max-Age=${7 * 24 * 60 * 60}`,
   ];
@@ -55,7 +56,6 @@ export const removeAccessToken = (): void => {
  */
 export const isAuthenticated = (): boolean => {
   const token = getAccessToken();
-  console.log(!!token);
   return !!token && !isTokenExpired(token);
 };
 

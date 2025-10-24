@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { LoginCredentials } from "@/types";
 import { FiEye, FiEyeOff } from "react-icons/fi";
-import { FaGoogle, FaFacebook } from "react-icons/fa";
+import { FaFacebook, FaGoogle } from "react-icons/fa";
 import { useAuth } from "@/hooks/useAuth";
 
 interface LoginFormProps {
@@ -23,10 +23,14 @@ const LoginForm: React.FC<LoginFormProps> = ({
   showSocialLogin = true,
 }) => {
   const router = useRouter();
-  const { login, isLoggedIn, user } = useAuth();
+  const pathname = usePathname();
+  const { login, isLoggedIn, user, isLoading: authLoading } = useAuth();
 
   // Redirect if already logged in
   useEffect(() => {
+    // Don't redirect while auth is still loading
+    if (authLoading) return;
+
     if (isLoggedIn && user) {
       const defaultRedirects: Record<string, string> = {
         student: "/dashboard/student",
@@ -37,9 +41,13 @@ const LoginForm: React.FC<LoginFormProps> = ({
         redirectTo ||
         defaultRedirects[user.role || "student"] ||
         `/dashboard/${user.role}`;
-      router.push(redirectPath);
+
+      // Only redirect if we're not already on the target page
+      if (pathname !== redirectPath) {
+        router.push(redirectPath);
+      }
     }
-  }, [isLoggedIn, user, router, redirectTo]);
+  }, [authLoading, isLoggedIn, user, router, redirectTo, pathname]);
 
   const [formData, setFormData] = useState<LoginCredentials>({
     identifier: "",

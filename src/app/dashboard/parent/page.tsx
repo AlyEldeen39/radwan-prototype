@@ -7,31 +7,38 @@ import ParentOverview from "@/components/dashboard/ParentOverview";
 import ParentChildrenList from "@/components/dashboard/ParentChildrenList";
 import { ParentDashboardData } from "@/types";
 import { dashboardApi } from "@/api/dashboard";
-import { FiDollarSign, FiClock, FiCheckCircle, FiX } from "react-icons/fi";
+import { FiCheckCircle, FiClock, FiDollarSign, FiX } from "react-icons/fi";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import { useAuth } from "@/hooks/useAuth";
 
 const ParentDashboardPage: React.FC = () => {
   const router = useRouter();
+  const { user, isLoading: authLoading, isLoggedIn } = useAuth();
   const [dashboardData, setDashboardData] =
     useState<ParentDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Wait for auth to load before checking
+    if (authLoading) return;
+
+    // Redirect if not logged in or wrong role
+    if (!isLoggedIn || !user) {
+      router.push("/login");
+      return;
+    }
+
+    if (user.role !== "parent") {
+      router.push(`/dashboard/${user.role}`);
+      return;
+    }
+
     const loadDashboard = async () => {
       try {
-        // Check if user is logged in and has correct role
-        const storedUser = localStorage.getItem("user");
-        const userRole = localStorage.getItem("userRole");
-
-        if (!storedUser || userRole !== "parent") {
-          router.push("/login");
-          return;
-        }
-
-        // Get parent ID (mock for now)
-        const parentId = "p1"; // In real app, get from user data
+        // Get parent ID from user data
+        const parentId = user.id || "p1";
 
         const data = await dashboardApi.getParentDashboard(parentId);
         setDashboardData(data);
@@ -43,7 +50,7 @@ const ParentDashboardPage: React.FC = () => {
     };
 
     loadDashboard();
-  }, [router]);
+  }, [authLoading, isLoggedIn, user, router]);
 
   const getPaymentStatusBadge = (status: string) => {
     switch (status) {
@@ -72,6 +79,23 @@ const ParentDashboardPage: React.FC = () => {
         return <Badge variant="default">{status}</Badge>;
     }
   };
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">جاري التحقق من الهوية...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not logged in (redirect is happening)
+  if (!isLoggedIn || !user) {
+    return null;
+  }
 
   if (loading) {
     return (
@@ -198,17 +222,17 @@ const ParentDashboardPage: React.FC = () => {
                           </p>
                           <p className="text-xs text-gray-500">
                             {new Date(
-                              payment.payment_date || ""
+                              payment.payment_date || "",
                             ).toLocaleDateString("ar-SA")}
                           </p>
                           <p className="text-xs text-gray-600">
                             {payment.method === "cash"
                               ? "نقداً"
                               : payment.method === "bank_transfer"
-                              ? "تحويل بنكي"
-                              : payment.method === "instapay"
-                              ? "إنستاباي"
-                              : payment.method}
+                                ? "تحويل بنكي"
+                                : payment.method === "instapay"
+                                  ? "إنستاباي"
+                                  : payment.method}
                           </p>
                         </div>
                         {getPaymentStatusBadge(payment.status || "pending")}

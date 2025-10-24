@@ -10,9 +10,11 @@ import { InstructorDashboardData, Lecture } from "@/types";
 import { dashboardApi } from "@/api/dashboard";
 import { FiBarChart, FiTrendingUp } from "react-icons/fi";
 import Card from "@/components/ui/Card";
+import { useAuth } from "@/hooks/useAuth";
 
 const InstructorDashboardPage: React.FC = () => {
   const router = useRouter();
+  const { user, isLoading: authLoading, isLoggedIn } = useAuth();
   const [dashboardData, setDashboardData] =
     useState<InstructorDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,19 +22,24 @@ const InstructorDashboardPage: React.FC = () => {
   const [showAttendancePanel, setShowAttendancePanel] = useState(false);
 
   useEffect(() => {
+    // Wait for auth to load before checking
+    if (authLoading) return;
+
+    // Redirect if not logged in or wrong role
+    if (!isLoggedIn || !user) {
+      router.push("/instructor/login");
+      return;
+    }
+
+    if (user.role !== "instructor") {
+      router.push(`/dashboard/${user.role}`);
+      return;
+    }
+
     const loadDashboard = async () => {
       try {
-        // Check if user is logged in and has correct role
-        const storedUser = localStorage.getItem("user");
-        const userRole = localStorage.getItem("userRole");
-
-        if (!storedUser || userRole !== "instructor") {
-          router.push("/instructor/login");
-          return;
-        }
-
-        // Get instructor ID (mock for now)
-        const instructorId = "ins1"; // In real app, get from user data
+        // Get instructor ID from user data
+        const instructorId = user.id || "ins1";
 
         const data = await dashboardApi.getInstructorDashboard(instructorId);
         setDashboardData(data);
@@ -44,7 +51,7 @@ const InstructorDashboardPage: React.FC = () => {
     };
 
     loadDashboard();
-  }, [router]);
+  }, [authLoading, isLoggedIn, user, router]);
 
   const handleTakeAttendance = (lecture: Lecture) => {
     setSelectedLecture(lecture);
@@ -55,6 +62,23 @@ const InstructorDashboardPage: React.FC = () => {
     setShowAttendancePanel(false);
     setSelectedLecture(undefined);
   };
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">جاري التحقق من الهوية...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not logged in (redirect is happening)
+  if (!isLoggedIn || !user) {
+    return null;
+  }
 
   if (loading) {
     return (
@@ -183,10 +207,10 @@ const InstructorDashboardPage: React.FC = () => {
                             </p>
                             <p className="text-xs text-gray-600">
                               {new Date(
-                                lecture.scheduled_at
+                                lecture.scheduled_at,
                               ).toLocaleDateString("ar-SA")}{" "}
                               {new Date(
-                                lecture.scheduled_at
+                                lecture.scheduled_at,
                               ).toLocaleTimeString("ar-SA", {
                                 hour: "2-digit",
                                 minute: "2-digit",

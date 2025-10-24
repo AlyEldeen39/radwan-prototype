@@ -7,32 +7,39 @@ import StudentOverview from "@/components/dashboard/StudentOverview";
 import StudentCoursesList from "@/components/dashboard/StudentCoursesList";
 import StudentProgressCard from "@/components/dashboard/StudentProgressCard";
 import StudentEnrollments from "@/components/dashboard/StudentEnrollments";
-import { StudentDashboardData, Notification } from "@/types";
+import { Notification, StudentDashboardData } from "@/types";
 import { dashboardApi } from "@/api/dashboard";
 import { FiBell, FiX } from "react-icons/fi";
 import Card from "@/components/ui/Card";
+import { useAuth } from "@/hooks/useAuth";
 
 const StudentDashboardPage: React.FC = () => {
   const router = useRouter();
+  const { user, isLoading: authLoading, isLoggedIn } = useAuth();
   const [dashboardData, setDashboardData] =
     useState<StudentDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
+    // Wait for auth to load before checking
+    if (authLoading) return;
+
+    // Redirect if not logged in or wrong role
+    if (!isLoggedIn || !user) {
+      router.push("/login");
+      return;
+    }
+
+    if (user.role !== "student") {
+      router.push(`/dashboard/${user.role}`);
+      return;
+    }
+
     const loadDashboard = async () => {
       try {
-        // Check if user is logged in and has correct role
-        const storedUser = localStorage.getItem("user");
-        const userRole = localStorage.getItem("userRole");
-
-        if (!storedUser || userRole !== "student") {
-          router.push("/login");
-          return;
-        }
-
-        // Get student ID (mock for now)
-        const studentId = "s1"; // In real app, get from user data
+        // Get student ID from user data
+        const studentId = user.id || "s1";
 
         const data = await dashboardApi.getStudentDashboard(studentId);
         setDashboardData(data);
@@ -45,11 +52,28 @@ const StudentDashboardPage: React.FC = () => {
     };
 
     loadDashboard();
-  }, [router]);
+  }, [authLoading, isLoggedIn, user, router]);
 
   const dismissNotification = (notificationId: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
   };
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">جاري التحقق من الهوية...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not logged in (redirect is happening)
+  if (!isLoggedIn || !user) {
+    return null;
+  }
 
   if (loading) {
     return (
